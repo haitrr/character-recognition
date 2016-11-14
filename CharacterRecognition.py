@@ -1,6 +1,5 @@
 import numpy as np
 from PIL import Image
-import tkinter
 
 WHITE = (255, 255, 255)
 
@@ -11,19 +10,20 @@ class CharacterReconition(object):
         self.input_layer = None
         self.syn = None
         self.input_size = 16, 16
-        self.l1_size=90
-        self.output_size=62
-        self.sample_size=20
-        self.char = [0,1,2,3,4,5,6,7,8,9,'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
+        self.l1_size = 90
+        self.output_size = 62
+        self.sample_size = 20
+        self.char = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
+                     'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
+                     'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
         return
-        # sigmoid function
 
-    #load input and output layer
+    # load input and output layer
     def load_input_output(self):
         self.input_layer = self.get_input_from_samples()
         self.output_layer = self.get_output_layer()
 
-    #storage weights to file
+    # storage weights to file
     def save_weights(self):
         f = open("weights.txt", 'w')
         f.write("SYN0\n")
@@ -36,13 +36,13 @@ class CharacterReconition(object):
                 f.write(str(j) + "\n")
         f.close()
 
+    # load saved weights
     def load_weight(self):
         f = open("weights.txt", 'r')
         f.readline()
-        t = []
         t2 = []
         t3 = []
-        for i in range(0, self.input_size[0]*self.input_size[1]):
+        for i in range(0, self.input_size[0] * self.input_size[1]):
             t = []
             for i in range(0, self.l1_size):
                 t.append(float(f.readline()))
@@ -55,21 +55,24 @@ class CharacterReconition(object):
             t3.append(t)
         self.syn = t2, t3
 
+    # sigmoid function
     def sigmoid(self, x, deriv=False):
         if deriv:
             return x * (1 - x)
         return 1 / (1 + np.exp(-x))
 
+    # get input from samples
     def get_input_from_samples(self):
         input_layer = []
-        for i in range(1, self.output_size+1):
+        for i in range(1, self.output_size + 1):
             print("Loading sample " + str(i))
-            for j in range(1, self.sample_size+1):
+            for j in range(1, self.sample_size + 1):
                 input_layer.append((self.get_pixels(
                     "Samples" + "\Sample" + str(i).zfill(3) + "\img" + str(i).zfill(3) + "-" + str(j).zfill(
                         5) + ".png")))
         return np.array(input_layer)
 
+    # get pixel from image
     def get_pixels(self, image):
         im = Image.open(image)
         im.thumbnail(self.input_size)
@@ -84,30 +87,32 @@ class CharacterReconition(object):
                     input_vector.append(0)
         return np.array(input_vector)
 
+    # generate input layer
     def get_output_layer(self):
         output_layer = []
-        for i in range(1, self.output_size+1):
+        for i in range(1, self.output_size + 1):
             output = []
-            for k in range(1, self.output_size+1):
+            for k in range(1, self.output_size + 1):
                 if k == i:
                     output.append(1)
                 else:
                     output.append(0)
-            for j in range(1, self.sample_size+1):
+            for j in range(1, self.sample_size + 1):
                 output_layer.append(output)
         return np.array(output_layer)
 
-    def train(self, input, output, times,resume= False):
-        #continue training?
-        if resume :
+    # train the network
+    def train(self, input, output, times, resume=False):
+        # continue training?
+        if resume:
             syn = self.load_weight()
-            syn0= syn[0]
+            syn0 = syn[0]
             syn1 = syn[1]
         else:
             # seed random numbers
             np.random.seed(1)
             # initialize weights randomly with mean 0
-            syn0 = 2 * np.random.random((self.input_size[1]*self.input_size[2], self.l1_size)) - 1
+            syn0 = 2 * np.random.random((self.input_size[1] * self.input_size[2], self.l1_size)) - 1
             syn1 = 2 * np.random.random((self.l1_size, self.l2)) - 1
 
         for j in range(times):
@@ -132,9 +137,11 @@ class CharacterReconition(object):
             syn0 += l0.T.dot(l1_delta)
         return syn0, syn1
 
+    # get the sample link
     def sample(self, i, j):
         return "Samples" + "\Sample" + str(i).zfill(3) + "\img" + str(i).zfill(3) + "-" + str(j).zfill(5) + ".png"
 
+    # reconize character from a image
     def reconize(self, image):
         l0 = self.get_pixels(image)
         l1 = self.sigmoid(np.dot(l0, self.syn[0]))
@@ -143,6 +150,7 @@ class CharacterReconition(object):
             print(str(i + 1) + "    " + str(l2[i]))
         return self.char[l2.argmax()]
 
+    # test the accuracy of the network
     def accurate(self, syn0, syn1):
         count = 0
         l0 = self.input_layer
