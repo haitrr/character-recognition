@@ -10,12 +10,15 @@ class CharacterReconition(object):
         self.input_layer = None
         self.syn = None
         self.input_size = 16, 16
-        self.l1_size = 90
-        self.output_size = 62
-        self.sample_size = 20
-        self.char = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
+        #size of layer 1
+        self.l1_size = 512
+        self.output_size = 66
+        self.sample_size = 194
+        self.char = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
                      'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
-                     'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+                     'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'Ă', 'Â',
+                     'Đ', 'Ê',
+                     'Ô', 'Ơ', 'Ư', 'ă', 'â', 'đ', 'ê', 'ô', 'ơ', 'ư']
         return
 
     # load input and output layer
@@ -53,7 +56,7 @@ class CharacterReconition(object):
             for i in range(0, self.output_size):
                 t.append(float(f.readline()))
             t3.append(t)
-        self.syn = t2, t3
+        self.syn = np.array(t2), np.array(t3)
 
     # sigmoid function
     def sigmoid(self, x, deriv=False):
@@ -75,7 +78,6 @@ class CharacterReconition(object):
     # get pixel from image
     def get_pixels(self, image):
         im = Image.open(image)
-        im.thumbnail(self.input_size)
         rgb_im = im.convert('RGB')
         input_vector = []
         for i in range(0, self.input_size[1]):
@@ -102,18 +104,19 @@ class CharacterReconition(object):
         return np.array(output_layer)
 
     # train the network
-    def train(self, input, output, times, resume=False):
+    def train(self, times, resume=False):
         # continue training?
-        if resume:
-            syn = self.load_weight()
-            syn0 = syn[0]
-            syn1 = syn[1]
+        if resume is True:
+            self.load_weight()
+            syn0 = self.syn[0]
+            syn1 = self.syn[1]
         else:
             # seed random numbers
             np.random.seed(1)
             # initialize weights randomly with mean 0
-            syn0 = 2 * np.random.random((self.input_size[1] * self.input_size[2], self.l1_size)) - 1
-            syn1 = 2 * np.random.random((self.l1_size, self.l2)) - 1
+            syn0 = 2 * np.random.random((self.input_size[0] * self.input_size[1], self.l1_size))-1
+            syn1 = 2 * np.random.random((self.l1_size, self.output_size))-1
+            self.syn=syn0,syn1
 
         for j in range(times):
             # forward propagation
@@ -123,20 +126,65 @@ class CharacterReconition(object):
 
             # how much did we miss?
             l2_error = self.output_layer - l2
-            if (j % 100) == 0:
+            if j % 5 == 0 :
+                print(str(j))
                 print("Error:" + str(np.mean(np.abs(l2_error))))
-            l2_delta = l2_error  # * sigmoid(l2, deriv=True)
+                self.accurate()
+            l2_delta = l2_error
 
             l1_error = l2_delta.dot(syn1.T)
             # multiply how much we missed by the
             # slope of the sigmoid at the values in l1
-            l1_delta = l1_error  # * sigmoid(l1, True)
+            l1_delta = l1_error
 
             # update weights
-            syn1 += l1.T.dot(l2_delta)
-            syn0 += l0.T.dot(l1_delta)
-        return syn0, syn1
+            alpha1 = l1.T.dot(l2_delta)
+            alpha0 = l0.T.dot(l1_delta)
+            syn1 += alpha1
+            syn0 += alpha0
+            self.syn = syn0, syn1
 
+    def train2(self, times, resume=False):
+        # continue training?
+        if resume is True:
+            self.load_weight()
+            syn0 = self.syn[0]
+            syn1 = self.syn[1]
+        else:
+            # seed random numbers
+            np.random.seed(1)
+            # initialize weights randomly with mean 0
+            syn0 = 2 * np.random.random((self.input_size[0] * self.input_size[1], self.l1_size)) - 1
+            syn1 = 2 * np.random.random((self.l1_size, self.output_size)) - 1
+            self.syn = syn0, syn1
+
+        for j in range(times):
+            # forward propagation
+            l0 = self.input_layer
+            l1 = self.sigmoid(np.dot(l0, syn0))
+            l2 = self.sigmoid(np.dot(l1, syn1))
+
+            # how much did we miss?
+            l2_error = self.output_layer - l2
+            if j % 5 == 0:
+                print(str(j))
+                print("Error:" + str(np.mean(np.abs(l2_error))))
+                self.accurate()
+                # if self.accurate()>30:
+                # break
+            l2_delta = l2_error  * self.sigmoid(l2, deriv=True)
+
+            l1_error = l2_delta.dot(syn1.T)
+            # multiply how much we missed by the
+            # slope of the sigmoid at the values in l1
+            l1_delta = l1_error  * self.sigmoid(l1, deriv=True)
+
+            # update weights
+            alpha1 = l1.T.dot(l2_delta)
+            alpha0 = l0.T.dot(l1_delta)
+            syn1 += alpha1
+            syn0 += alpha0
+            self.syn = syn0, syn1
     # get the sample link
     def sample(self, i, j):
         return "Samples" + "\Sample" + str(i).zfill(3) + "\img" + str(i).zfill(3) + "-" + str(j).zfill(5) + ".png"
@@ -148,25 +196,26 @@ class CharacterReconition(object):
         l2 = self.sigmoid(np.dot(l1, self.syn[1]))
         for i in range(0, self.output_size):
             print(str(i + 1) + "    " + str(l2[i]))
+        print(str(l2.argmax()+1))
         return self.char[l2.argmax()]
 
     # test the accuracy of the network
-    def accurate(self, syn0, syn1):
+    def accurate(self):
         count = 0
         l0 = self.input_layer
-        l1 = self.sigmoid(np.dot(l0, syn0))
-        l2 = self.sigmoid(np.dot(l1, syn1))
-        for t in range(0, self.output_size):
-            for l in range(0, self.sample_size):
-                maxs = self.output_layer[t][l].argmax()
-                maxo = l2[t][l].argmax()
-                if maxs == maxo:
-                    count = count + 1
-        print("Accuracy rate : " + str(count) + " " + str(count * 100 / 1240))
-
-# print("Output After Training:")
-# print(l2)
-# syn = train(input_layer, output_layer, 20000)
-# syn = load_weight()
-# save_weights(syn)
-# accurate(syn[0], syn[1])
+        l1 = self.sigmoid(np.dot(l0, self.syn[0]))
+        l2 = self.sigmoid(np.dot(l1, self.syn[1]))
+        for t in range(0, self.sample_size * self.output_size):
+            maxs = self.output_layer[t].argmax()
+            maxo = l2[t].argmax()
+            if maxs == maxo:
+                count = count + 1
+        print("Accuracy rate : " + str(count) + " " + str(count * 100 / (self.sample_size * self.output_size)))
+        return count * 100 / (self.sample_size * self.output_size)
+#
+#
+char_rec = CharacterReconition()
+char_rec.load_input_output()
+for i in range(250):
+    char_rec.train2(30, True)
+    char_rec.save_weights()

@@ -39,14 +39,14 @@ class App(object):
         self.character_recognition.load_weight()
 
     def open_image_button_click(self):
-        self.file_name = filedialog.askopenfilename(initialdir="D:\Download\EnglishFnt\EnglishFnt\English\Fnt",
+        self.file_name = filedialog.askopenfilename(initialdir= "Samples", #"D:\Download\EnglishFnt\EnglishFnt\English\Fnt",
                                                     title="Choose image",
                                                     filetypes=(("png files", "*.png"), ("all files", "*.*")))
         if self.file_name is not "":
             self.image = ImageTk.PhotoImage(Image.open(self.file_name))
             self.image_panel.config(image=self.image)
             self.image_panel.pack(side="bottom", fill="both", expand="yes")
-            
+
     def reconize_button_click(self):
         rs = self.character_recognition.reconize(self.file_name)
         self.resuilt_lable.config(text=rs)
