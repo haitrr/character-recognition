@@ -11,9 +11,9 @@ class CharacterReconition(object):
         self.syn = None
         self.input_size = 16, 16
         # size of layer 1
-        self.l1_size = 128
+        self.l1_size = 200
         # size of layer 2
-        self.l2_size = 64
+        self.l2_size = 100
         # size of output
         self.output_size = 66
         self.sample_size = 194
@@ -266,9 +266,7 @@ class CharacterReconition(object):
 #
 char_rec = CharacterReconition()
 char_rec.load_output()
-pyplot.plot(char_rec.output_layer,char_rec.sigmoid(char_rec.output_layer))
-pyplot.show()
 char_rec.load_input()
 for i in range(250):
-    char_rec.train(30, False)
+    char_rec.train(30, True)
     char_rec.save_weights()
