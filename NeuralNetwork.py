@@ -7,8 +7,8 @@ import sys
 # Third-party libraries
 import numpy as np
 
-
 #### Cost function
+
 
 class CrossEntropyCost(object):
     @staticmethod
@@ -34,8 +34,10 @@ class NeuralNetwork(object):
     def weight_initializer(self):
 
         self.biases = [np.random.randn(y, 1) for y in self.sizes[1:]]
-        self.weights = [np.random.randn(y, x) / np.sqrt(x)
-                        for x, y in zip(self.sizes[:-1], self.sizes[1:])]
+        self.weights = [
+            np.random.randn(y, x) / np.sqrt(x)
+            for x, y in zip(self.sizes[:-1], self.sizes[1:])
+        ]
 
     def feed_forward(self, a):
         """Return the output of the network if ``a`` is input."""
@@ -43,7 +45,11 @@ class NeuralNetwork(object):
             a = sigmoid(np.dot(w, a) + b)
         return a
 
-    def train(self, training_data, epochs, mini_batch_size, learning_rate,
+    def train(self,
+              training_data,
+              epochs,
+              mini_batch_size,
+              learning_rate,
               lmbda=0.0,
               evaluation_data=None,
               monitor_evaluation_cost=False,
@@ -59,10 +65,11 @@ class NeuralNetwork(object):
             random.shuffle(training_data)
             mini_batches = [
                 training_data[k:k + mini_batch_size]
-                for k in range(0, n, mini_batch_size)]
+                for k in range(0, n, mini_batch_size)
+            ]
             for mini_batch in mini_batches:
-                self.update_mini_batch(
-                    mini_batch, learning_rate, lmbda, len(training_data))
+                self.update_mini_batch(mini_batch, learning_rate, lmbda,
+                                       len(training_data))
             print("Epoch %s training complete" % j)
             if monitor_training_cost:
                 cost = self.total_cost(training_data, lmbda)
@@ -77,12 +84,12 @@ class NeuralNetwork(object):
                 evaluation_cost.append(cost)
                 print("Cost on evaluation data: {}".format(cost))
             if monitor_evaluation_accuracy:
-                accuracy = self.accuracy(evaluation_data,True)
+                accuracy = self.accuracy(evaluation_data, True)
                 evaluation_accuracy.append(accuracy)
                 print("Accuracy on evaluation data: {} / {}".format(
-                    self.accuracy(evaluation_data,True), n_data))
+                    self.accuracy(evaluation_data, True), n_data))
             print()
-        return evaluation_cost, evaluation_accuracy,training_cost, training_accuracy
+        return evaluation_cost, evaluation_accuracy, training_cost, training_accuracy
 
     def update_mini_batch(self, mini_batch, learning_rate, lmbda, n):
 
@@ -92,11 +99,15 @@ class NeuralNetwork(object):
             delta_nabla_b, delta_nabla_w = self.backprop(x, y)
             nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
             nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
-        self.weights = [(1 - learning_rate * (lmbda / n)) * w - (learning_rate / len(mini_batch)) * nw for w, nw in zip(self.weights, nabla_w)]
-        self.biases = [b - (learning_rate / len(mini_batch)) * nb for b, nb in zip(self.biases, nabla_b)]
+        self.weights = [(1 - learning_rate * (lmbda / n)) * w -
+                        (learning_rate / len(mini_batch)) * nw
+                        for w, nw in zip(self.weights, nabla_w)]
+        self.biases = [
+            b - (learning_rate / len(mini_batch)) * nb
+            for b, nb in zip(self.biases, nabla_b)
+        ]
 
     def backprop(self, x, y):
-
 
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
@@ -114,7 +125,6 @@ class NeuralNetwork(object):
         nabla_b[-1] = delta
         nabla_w[-1] = np.dot(delta, activations[-2].transpose())
 
-
         for l in range(2, self.num_layers):
             z = zs[-l]
             sp = sigmoid_prime(z)
@@ -128,8 +138,7 @@ class NeuralNetwork(object):
             results = [(np.argmax(self.feed_forward(x)), np.argmax(y))
                        for (x, y) in data]
         else:
-            results = [(np.argmax(self.feed_forward(x)), y)
-                       for (x, y) in data]
+            results = [(np.argmax(self.feed_forward(x)), y) for (x, y) in data]
         return sum(int(x == y) for (x, y) in results)
 
     def total_cost(self, data, lmbda, convert=False):
@@ -140,15 +149,17 @@ class NeuralNetwork(object):
             if convert: y = vectorized_result(y)
             cost += self.cost.cost(a, y) / len(data)
         cost += 0.5 * (lmbda / len(data)) * sum(
-            np.linalg.norm(w) ** 2 for w in self.weights)
+            np.linalg.norm(w)**2 for w in self.weights)
         return cost
 
     def save(self, filename):
         """Save the neural network to the file ``filename``."""
-        data = {"sizes": self.sizes,
-                "weights": [w.tolist() for w in self.weights],
-                "biases": [b.tolist() for b in self.biases],
-                "cost": str(self.cost.__name__)}
+        data = {
+            "sizes": self.sizes,
+            "weights": [w.tolist() for w in self.weights],
+            "biases": [b.tolist() for b in self.biases],
+            "cost": str(self.cost.__name__)
+        }
         f = open(filename, "w")
         json.dump(data, f)
         f.close()
